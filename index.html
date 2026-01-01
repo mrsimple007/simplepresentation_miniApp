@@ -103,9 +103,34 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        tg.enableClosingConfirmation();
+        
+        // Enhanced initialization with debugging
+        console.log('=== TELEGRAM WEB APP INITIALIZATION ===');
+        console.log('Telegram object exists:', typeof Telegram !== 'undefined');
+        console.log('WebApp exists:', typeof tg !== 'undefined');
+        
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            
+            console.log('WebApp Version:', tg.version);
+            console.log('Platform:', tg.platform);
+            console.log('Theme:', tg.colorScheme);
+            console.log('User:', tg.initDataUnsafe?.user);
+            console.log('sendData available:', typeof tg.sendData === 'function');
+            
+            // Set up event listeners for debugging
+            tg.onEvent('webAppDataSent', () => {
+                console.log('✓ Data sent successfully');
+            });
+            
+            tg.onEvent('webAppDataSendFailed', (error) => {
+                console.error('✗ Data send failed:', error);
+            });
+        } else {
+            console.error('Telegram WebApp not available!');
+            alert('This app must be opened in Telegram');
+        }
 
         let currentStep = 'home';
         let activeTab = 'presentation';
@@ -497,7 +522,11 @@
 
         function createDocument() {
             if (!formData.content.trim()) {
-                tg.showAlert('Please enter some content!');
+                if (tg && tg.showAlert) {
+                    tg.showAlert('Please enter some content!');
+                } else {
+                    alert('Please enter some content!');
+                }
                 return;
             }
 
@@ -523,19 +552,62 @@
                 pages: formData.pages
             };
 
-            console.log('Sending data:', dataToSend);
+            console.log('=== PREPARING TO SEND DATA ===');
+            console.log('Data object:', dataToSend);
+            console.log('Telegram WebApp available:', typeof tg !== 'undefined');
+            console.log('sendData method available:', tg && typeof tg.sendData === 'function');
+
+            // Check if we're in Telegram
+            if (!tg || typeof tg.sendData !== 'function') {
+                console.error('Not in Telegram environment or sendData not available');
+                const testMode = confirm('Not in Telegram. Run in test mode?');
+                if (testMode) {
+                    console.log('Test mode: Data that would be sent:', JSON.stringify(dataToSend, null, 2));
+                    alert('Test mode: Check console for data');
+                }
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <span>Create Now</span>
+                    `;
+                }
+                return;
+            }
 
             // Send data to bot
             try {
-                tg.sendData(JSON.stringify(dataToSend));
+                const jsonString = JSON.stringify(dataToSend);
+                console.log('JSON string to send:', jsonString);
+                console.log('JSON length:', jsonString.length);
                 
-                // Close after a short delay
+                // Check size limit (Telegram has a 64KB limit for web app data)
+                if (jsonString.length > 65536) {
+                    throw new Error('Data too large (max 64KB)');
+                }
+
+                console.log('Calling tg.sendData()...');
+                tg.sendData(jsonString);
+                console.log('✓ tg.sendData() called');
+                
+                // Show success message
                 setTimeout(() => {
-                    tg.close();
-                }, 500);
+                    console.log('Data should be sent by now');
+                }, 100);
+                
             } catch (error) {
-                console.error('Error sending data:', error);
-                tg.showAlert('Error: ' + error.message);
+                console.error('=== ERROR SENDING DATA ===');
+                console.error('Error:', error);
+                console.error('Stack:', error.stack);
+                
+                if (tg && tg.showAlert) {
+                    tg.showAlert('Error: ' + error.message);
+                } else {
+                    alert('Error: ' + error.message);
+                }
+                
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = `
