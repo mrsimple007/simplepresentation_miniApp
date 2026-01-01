@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Presentation Creator</title>
+    <title>AI Creator</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -12,28 +12,29 @@
             padding: 0;
             overflow-x: hidden;
             -webkit-tap-highlight-color: transparent;
+            background: #0a0a0a;
         }
         
         .gradient-bg {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
         }
         
         .card-hover {
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
-        .card-hover:hover {
-            transform: translateY(-4px);
+        .card-hover:active {
+            transform: scale(0.98);
         }
         
         .slide-in {
-            animation: slideIn 0.4s ease-out;
+            animation: slideIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         @keyframes slideIn {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(30px);
             }
             to {
                 opacity: 1;
@@ -41,33 +42,78 @@
             }
         }
         
-        input[type="range"]::-webkit-slider-thumb {
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
             appearance: none;
-            width: 24px;
-            height: 24px;
-            background: #667eea;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 8px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #6366f1;
             border-radius: 50%;
             cursor: pointer;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
         }
         
         input[type="range"]::-moz-range-thumb {
-            width: 24px;
-            height: 24px;
-            background: #667eea;
+            width: 20px;
+            height: 20px;
+            background: #6366f1;
             border-radius: 50%;
             cursor: pointer;
+            border: none;
+        }
+        
+        .tab-active {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+        
+        textarea:focus, input:focus {
+            outline: none;
+        }
+        
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        @media (min-width: 640px) {
+            .style-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-950 text-white">
     <div id="app"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
+        tg.enableClosingConfirmation();
 
         let currentStep = 'home';
+        let activeTab = 'presentation';
+        let userData = {
+            balance: 0,
+            totalCreated: 0
+        };
+        
         let formData = {
             content: '',
             slides: 8,
@@ -77,242 +123,355 @@
             pages: 10
         };
 
+        const styles = [
+            { id: 'formal', name: 'Formal', icon: '📚', desc: 'Professional' },
+            { id: 'academic', name: 'Academic', icon: '🎓', desc: 'Scholarly' },
+            { id: 'creative', name: 'Creative', icon: '🎨', desc: 'Artistic' },
+            { id: 'casual', name: 'Casual', icon: '😊', desc: 'Friendly' },
+            { id: 'style_1', name: 'Modern', icon: '✨', desc: 'Contemporary' },
+            { id: 'style_2', name: 'Minimal', icon: '⚪', desc: 'Clean' },
+            { id: 'style_3', name: 'Bold', icon: '💪', desc: 'Strong' },
+            { id: 'style_4', name: 'Elegant', icon: '💎', desc: 'Refined' },
+            { id: 'style_5', name: 'Tech', icon: '💻', desc: 'Digital' },
+            { id: 'style_6', name: 'Nature', icon: '🌿', desc: 'Organic' },
+            { id: 'style_7', name: 'Corporate', icon: '🏢', desc: 'Business' },
+            { id: 'style_8', name: 'Vibrant', icon: '🌈', desc: 'Colorful' },
+            { id: 'style_9', name: 'Dark', icon: '🌙', desc: 'Night mode' },
+            { id: 'style_10', name: 'Light', icon: '☀️', desc: 'Bright' },
+            { id: 'style_11', name: 'Retro', icon: '📼', desc: 'Vintage' },
+            { id: 'style_12', name: 'Futuristic', icon: '🚀', desc: 'Sci-fi' },
+            { id: 'style_13', name: 'Gradient', icon: '🎨', desc: 'Smooth' },
+            { id: 'style_14', name: 'Classic', icon: '📖', desc: 'Traditional' },
+            { id: 'style_win_1', name: 'Office', icon: '📊', desc: 'Standard' },
+            { id: 'style_win_2', name: 'Premium', icon: '👑', desc: 'Luxury' }
+        ];
+
+        // Fetch user data from Telegram
+        function getUserData() {
+            const user = tg.initDataUnsafe?.user;
+            if (user) {
+                // In real app, fetch from backend
+                userData.balance = 15000; // Mock data
+                userData.totalCreated = 24; // Mock data
+            }
+        }
+
         function render() {
             const app = document.getElementById('app');
             
             if (currentStep === 'home') {
                 app.innerHTML = `
-                    <div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6 slide-in">
-                        <div class="max-w-2xl mx-auto">
-                            <!-- Header -->
-                            <div class="text-center mb-8">
-                                <div class="inline-flex items-center justify-center w-20 h-20 gradient-bg rounded-3xl mb-4 shadow-lg">
-                                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
-                                    </svg>
+                    <div class="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 slide-in">
+                        <!-- Header with Stats -->
+                        <div class="gradient-bg p-6 rounded-b-3xl shadow-2xl">
+                            <div class="max-w-2xl mx-auto">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div>
+                                        <h1 class="text-2xl font-bold">AI Creator</h1>
+                                        <p class="text-white/70 text-sm">Create with AI power</p>
+                                    </div>
+                                    <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M10 3.5a1.5 1.5 0 013 0V4a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-.5a1.5 1.5 0 000 3h.5a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-.5a1.5 1.5 0 00-3 0v.5a1 1 0 01-1 1H6a1 1 0 01-1-1v-3a1 1 0 00-1-1h-.5a1.5 1.5 0 010-3H4a1 1 0 001-1V6a1 1 0 011-1h3a1 1 0 001-1v-.5z"></path>
+                                        </svg>
+                                    </div>
                                 </div>
-                                <h1 class="text-3xl font-bold text-gray-900 mb-2">
-                                    AI Presentation Creator
-                                </h1>
-                                <p class="text-gray-600">
-                                    Create stunning presentations instantly
-                                </p>
+                                
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="glass-effect rounded-2xl p-4">
+                                        <div class="text-white/60 text-xs mb-1">Balance</div>
+                                        <div class="text-xl font-bold">${userData.balance.toLocaleString()} UZS</div>
+                                    </div>
+                                    <div class="glass-effect rounded-2xl p-4">
+                                        <div class="text-white/60 text-xs mb-1">Created</div>
+                                        <div class="text-xl font-bold">${userData.totalCreated} docs</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="max-w-2xl mx-auto p-6">
+                            <!-- Tabs -->
+                            <div class="flex gap-2 mb-6 bg-gray-900/50 p-2 rounded-2xl">
+                                <button onclick="setTab('presentation')" class="flex-1 py-3 px-4 rounded-xl font-medium transition-all ${activeTab === 'presentation' ? 'tab-active text-white' : 'text-gray-400'}">
+                                    📊 Presentation
+                                </button>
+                                <button onclick="setTab('document')" class="flex-1 py-3 px-4 rounded-xl font-medium transition-all ${activeTab === 'document' ? 'tab-active text-white' : 'text-gray-400'}">
+                                    📄 Document
+                                </button>
+                                <button onclick="setTab('resume')" class="flex-1 py-3 px-4 rounded-xl font-medium transition-all ${activeTab === 'resume' ? 'tab-active text-white' : 'text-gray-400'}">
+                                    👤 Resume
+                                </button>
                             </div>
 
-                            <!-- Main Action -->
-                            <button onclick="startCreate('presentation')" class="w-full gradient-bg text-white rounded-2xl p-6 shadow-lg card-hover mb-4">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center space-x-4">
-                                        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="text-left">
-                                            <div class="font-semibold text-lg">Create Presentation</div>
-                                            <div class="text-sm text-indigo-100">Professional slides with AI</div>
-                                        </div>
-                                    </div>
-                                    <span class="text-2xl">→</span>
-                                </div>
-                            </button>
-
-                            <!-- Document Types -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <button onclick="startCreate('referat')" class="bg-white rounded-2xl p-5 shadow-md card-hover border border-gray-100">
-                                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center mb-3">
-                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="text-left">
-                                        <div class="font-semibold text-gray-900 mb-1">Referat</div>
-                                        <div class="text-xs text-gray-500">Academic paper</div>
-                                    </div>
-                                </button>
-
-                                <button onclick="startCreate('mustaqil')" class="bg-white rounded-2xl p-5 shadow-md card-hover border border-gray-100">
-                                    <div class="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mb-3">
-                                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="text-left">
-                                        <div class="font-semibold text-gray-900 mb-1">Mustaqil Ish</div>
-                                        <div class="text-xs text-gray-500">Independent work</div>
-                                    </div>
-                                </button>
-
-                                <button onclick="startCreate('kurs')" class="bg-white rounded-2xl p-5 shadow-md card-hover border border-gray-100">
-                                    <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center mb-3">
-                                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="text-left">
-                                        <div class="font-semibold text-gray-900 mb-1">Kurs Ishi</div>
-                                        <div class="text-xs text-gray-500">Course work</div>
-                                    </div>
-                                </button>
-
-                                <button onclick="startCreate('insho')" class="bg-white rounded-2xl p-5 shadow-md card-hover border border-gray-100">
-                                    <div class="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center mb-3">
-                                        <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="text-left">
-                                        <div class="font-semibold text-gray-900 mb-1">Essay</div>
-                                        <div class="text-xs text-gray-500">Creative writing</div>
-                                    </div>
-                                </button>
-                            </div>
+                            ${activeTab === 'presentation' ? renderPresentationTab() : activeTab === 'document' ? renderDocumentTab() : renderResumeTab()}
                         </div>
                     </div>
                 `;
             } else if (currentStep === 'create') {
-                const isPresentation = formData.type === 'presentation';
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-6 slide-in">
-                        <div class="max-w-2xl mx-auto">
-                            <button onclick="goHome()" class="mb-6 text-indigo-600 font-medium flex items-center space-x-2">
-                                <span>←</span>
-                                <span>Back</span>
-                            </button>
+                renderCreateForm();
+            }
+        }
 
-                            <div class="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
-                                <h2 class="text-2xl font-bold text-gray-900 mb-6">
-                                    Create ${isPresentation ? 'Presentation' : 'Document'}
-                                </h2>
-
-                                <div class="space-y-6">
-                                    <!-- Content -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                                            Content or Topic
-                                        </label>
-                                        <textarea 
-                                            id="content-input"
-                                            placeholder="Enter your content, topic, or paste text here..."
-                                            class="w-full h-40 px-4 py-3 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-gray-900"
-                                        >${formData.content}</textarea>
-                                    </div>
-
-                                    ${isPresentation ? `
-                                    <!-- Slides -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-3">
-                                            Number of Slides: <span id="slides-value">${formData.slides}</span>
-                                        </label>
-                                        <input 
-                                            type="range" 
-                                            id="slides-input"
-                                            min="5" 
-                                            max="15" 
-                                            value="${formData.slides}"
-                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                        >
-                                        <div class="flex justify-between text-xs text-gray-500 mt-2">
-                                            <span>5 slides</span>
-                                            <span>15 slides</span>
-                                        </div>
-                                    </div>
-                                    ` : `
-                                    <!-- Pages -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-3">
-                                            Number of Pages: <span id="pages-value">${formData.pages}</span>
-                                        </label>
-                                        <input 
-                                            type="range" 
-                                            id="pages-input"
-                                            min="3" 
-                                            max="30" 
-                                            value="${formData.pages}"
-                                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                        >
-                                        <div class="flex justify-between text-xs text-gray-500 mt-2">
-                                            <span>3 pages</span>
-                                            <span>30 pages</span>
-                                        </div>
-                                    </div>
-                                    `}
-
-                                    <!-- Language -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                                            🌐 Language
-                                        </label>
-                                        <div class="grid grid-cols-2 gap-3">
-                                            ${['auto', 'uz', 'ru', 'en'].map(lang => `
-                                                <button 
-                                                    onclick="selectLanguage('${lang}')"
-                                                    class="lang-btn px-4 py-3 rounded-xl font-medium transition-all ${formData.language === lang ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700'}"
-                                                >
-                                                    ${lang === 'auto' ? '🤖 Auto' : lang === 'uz' ? '🇺🇿 Uzbek' : lang === 'ru' ? '🇷🇺 Russian' : '🇬🇧 English'}
-                                                </button>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-
-                                    <!-- Style -->
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                                            🎨 Style
-                                        </label>
-                                        <div class="grid grid-cols-2 gap-3">
-                                            ${['formal', 'academic', 'casual', 'creative'].map(style => `
-                                                <button 
-                                                    onclick="selectStyle('${style}')"
-                                                    class="style-btn px-4 py-3 rounded-xl font-medium transition-all text-left ${formData.style === style ? 'bg-indigo-600 text-white shadow-lg' : 'bg-gray-100 text-gray-700'}"
-                                                >
-                                                    <div class="font-semibold">
-                                                        ${style === 'formal' ? '📚 Formal' : style === 'academic' ? '🎓 Academic' : style === 'casual' ? '😊 Casual' : '🎨 Creative'}
-                                                    </div>
-                                                    <div class="text-xs opacity-75">
-                                                        ${style === 'formal' ? 'Professional' : style === 'academic' ? 'Scholarly' : style === 'casual' ? 'Friendly' : 'Artistic'}
-                                                    </div>
-                                                </button>
-                                            `).join('')}
-                                        </div>
-                                    </div>
-
-                                    <!-- Create Button -->
-                                    <button 
-                                        onclick="createDocument()"
-                                        class="w-full gradient-bg text-white rounded-2xl py-4 font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center space-x-2"
-                                    >
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                                        </svg>
-                                        <span>Create Now</span>
-                                    </button>
+        function renderPresentationTab() {
+            return `
+                <div class="space-y-4">
+                    <button onclick="startCreate('presentation')" class="w-full gradient-bg text-white rounded-2xl p-6 shadow-2xl card-hover">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-left">
+                                    <div class="font-bold text-lg">Create Presentation</div>
+                                    <div class="text-sm text-white/70">AI-powered slides</div>
                                 </div>
                             </div>
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                    </button>
+
+                    <div class="glass-effect rounded-2xl p-5">
+                        <h3 class="font-semibold mb-3 flex items-center gap-2">
+                            <span>✨</span>
+                            <span>Features</span>
+                        </h3>
+                        <ul class="space-y-2 text-sm text-gray-300">
+                            <li class="flex items-center gap-2">
+                                <span class="text-green-400">✓</span>
+                                <span>5-15 customizable slides</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="text-green-400">✓</span>
+                                <span>20 professional styles</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="text-green-400">✓</span>
+                                <span>Multi-language support</span>
+                            </li>
+                            <li class="flex items-center gap-2">
+                                <span class="text-green-400">✓</span>
+                                <span>AI-generated content</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDocumentTab() {
+            return `
+                <div class="grid grid-cols-2 gap-3">
+                    ${[
+                        { type: 'referat', name: 'Referat', icon: '📝', desc: 'Academic paper' },
+                        { type: 'mustaqil', name: 'Mustaqil Ish', icon: '✍️', desc: 'Independent work' },
+                        { type: 'kurs', name: 'Kurs Ishi', icon: '🎓', desc: 'Course work' },
+                        { type: 'insho', name: 'Essay', icon: '📖', desc: 'Creative writing' }
+                    ].map(doc => `
+                        <button onclick="startCreate('${doc.type}')" class="glass-effect rounded-2xl p-5 card-hover text-left">
+                            <div class="text-3xl mb-3">${doc.icon}</div>
+                            <div class="font-semibold mb-1">${doc.name}</div>
+                            <div class="text-xs text-gray-400">${doc.desc}</div>
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function renderResumeTab() {
+            return `
+                <button onclick="startCreate('resume')" class="w-full gradient-bg text-white rounded-2xl p-6 shadow-2xl card-hover">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-bold text-lg">Create Resume/CV</div>
+                                <div class="text-sm text-white/70">Professional templates</div>
+                            </div>
+                        </div>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </button>
+            `;
+        }
+
+        function renderCreateForm() {
+            const app = document.getElementById('app');
+            const isPresentation = formData.type === 'presentation';
+            const isResume = formData.type === 'resume';
+            
+            app.innerHTML = `
+                <div class="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 slide-in">
+                    <div class="max-w-2xl mx-auto p-6">
+                        <button onclick="goHome()" class="mb-6 text-indigo-400 font-medium flex items-center space-x-2 hover:text-indigo-300">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            <span>Back</span>
+                        </button>
+
+                        <div class="glass-effect rounded-3xl p-6 mb-6">
+                            <h2 class="text-2xl font-bold mb-2">
+                                ${isResume ? '👤 Create Resume' : isPresentation ? '📊 Create Presentation' : '📄 Create Document'}
+                            </h2>
+                            <p class="text-gray-400 text-sm">Fill in the details below</p>
+                        </div>
+
+                        <div class="space-y-5">
+                            <!-- Content -->
+                            <div class="glass-effect rounded-2xl p-5">
+                                <label class="block text-sm font-medium text-gray-300 mb-3">
+                                    ${isResume ? '📝 Your Information' : '✍️ Content or Topic'}
+                                </label>
+                                <textarea 
+                                    id="content-input"
+                                    placeholder="${isResume ? 'Enter your details, experience, skills...' : 'Enter your content, topic, or paste text here...'}"
+                                    class="w-full h-40 px-4 py-3 bg-gray-900/50 border border-gray-700 rounded-xl focus:border-indigo-500 resize-none text-white placeholder-gray-500"
+                                >${formData.content}</textarea>
+                            </div>
+
+                            ${isPresentation ? `
+                            <!-- Slides -->
+                            <div class="glass-effect rounded-2xl p-5">
+                                <label class="block text-sm font-medium text-gray-300 mb-4">
+                                    📊 Number of Slides: <span id="slides-value" class="text-indigo-400 font-bold">${formData.slides}</span>
+                                </label>
+                                <input 
+                                    type="range" 
+                                    id="slides-input"
+                                    min="5" 
+                                    max="15" 
+                                    value="${formData.slides}"
+                                    class="w-full cursor-pointer"
+                                >
+                                <div class="flex justify-between text-xs text-gray-500 mt-3">
+                                    <span>5 slides</span>
+                                    <span>15 slides</span>
+                                </div>
+                            </div>
+                            ` : !isResume ? `
+                            <!-- Pages -->
+                            <div class="glass-effect rounded-2xl p-5">
+                                <label class="block text-sm font-medium text-gray-300 mb-4">
+                                    📄 Number of Pages: <span id="pages-value" class="text-indigo-400 font-bold">${formData.pages}</span>
+                                </label>
+                                <input 
+                                    type="range" 
+                                    id="pages-input"
+                                    min="3" 
+                                    max="30" 
+                                    value="${formData.pages}"
+                                    class="w-full cursor-pointer"
+                                >
+                                <div class="flex justify-between text-xs text-gray-500 mt-3">
+                                    <span>3 pages</span>
+                                    <span>30 pages</span>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <!-- Language -->
+                            <div class="glass-effect rounded-2xl p-5">
+                                <label class="block text-sm font-medium text-gray-300 mb-3">
+                                    🌐 Language
+                                </label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    ${['auto', 'uz', 'ru', 'en'].map(lang => `
+                                        <button 
+                                            onclick="selectLanguage('${lang}')"
+                                            class="px-4 py-3 rounded-xl font-medium transition-all ${formData.language === lang ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg' : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'}"
+                                        >
+                                            ${lang === 'auto' ? '🤖 Auto' : lang === 'uz' ? '🇺🇿 Uzbek' : lang === 'ru' ? '🇷🇺 Russian' : '🇬🇧 English'}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Style -->
+                            <div class="glass-effect rounded-2xl p-5">
+                                <label class="block text-sm font-medium text-gray-300 mb-3">
+                                    🎨 Style (${styles.length} options)
+                                </label>
+                                <div class="style-grid">
+                                    ${styles.map(style => `
+                                        <button 
+                                            onclick="selectStyle('${style.id}')"
+                                            class="px-3 py-3 rounded-xl font-medium transition-all text-left ${formData.style === style.id ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105' : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700/50'}"
+                                        >
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="text-lg">${style.icon}</span>
+                                                <span class="font-semibold text-sm">${style.name}</span>
+                                            </div>
+                                            <div class="text-xs opacity-75">${style.desc}</div>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Create Button -->
+                            <button 
+                                onclick="createDocument()"
+                                id="create-btn"
+                                class="w-full gradient-bg text-white rounded-2xl py-4 font-bold shadow-2xl card-hover flex items-center justify-center space-x-3"
+                            >
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                </svg>
+                                <span>Create Now</span>
+                            </button>
                         </div>
                     </div>
-                `;
+                </div>
+            `;
 
-                // Add event listeners
+            // Add event listeners
+            setTimeout(() => {
                 const contentInput = document.getElementById('content-input');
-                contentInput.addEventListener('input', (e) => {
-                    formData.content = e.target.value;
-                });
+                if (contentInput) {
+                    contentInput.addEventListener('input', (e) => {
+                        formData.content = e.target.value;
+                    });
+                }
 
                 if (isPresentation) {
                     const slidesInput = document.getElementById('slides-input');
-                    slidesInput.addEventListener('input', (e) => {
-                        formData.slides = parseInt(e.target.value);
-                        document.getElementById('slides-value').textContent = formData.slides;
-                    });
-                } else {
+                    if (slidesInput) {
+                        slidesInput.addEventListener('input', (e) => {
+                            formData.slides = parseInt(e.target.value);
+                            const valueDisplay = document.getElementById('slides-value');
+                            if (valueDisplay) {
+                                valueDisplay.textContent = formData.slides;
+                            }
+                        });
+                    }
+                } else if (!isResume) {
                     const pagesInput = document.getElementById('pages-input');
-                    pagesInput.addEventListener('input', (e) => {
-                        formData.pages = parseInt(e.target.value);
-                        document.getElementById('pages-value').textContent = formData.pages;
-                    });
+                    if (pagesInput) {
+                        pagesInput.addEventListener('input', (e) => {
+                            formData.pages = parseInt(e.target.value);
+                            const valueDisplay = document.getElementById('pages-value');
+                            if (valueDisplay) {
+                                valueDisplay.textContent = formData.pages;
+                            }
+                        });
+                    }
                 }
-            }
+            }, 100);
+        }
+
+        function setTab(tab) {
+            activeTab = tab;
+            render();
         }
 
         function startCreate(type) {
@@ -342,17 +501,55 @@
                 return;
             }
 
-            // Send data to bot
-            tg.sendData(JSON.stringify({
-                action: 'create_presentation',
-                userId: tg.initDataUnsafe?.user?.id,
-                ...formData
-            }));
+            const btn = document.getElementById('create-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <svg class="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <span>Creating...</span>
+                `;
+            }
 
-            tg.close();
+            // Prepare data to send
+            const dataToSend = {
+                action: 'create_presentation',
+                content: formData.content,
+                slides: formData.slides,
+                style: formData.style,
+                language: formData.language,
+                type: formData.type,
+                pages: formData.pages
+            };
+
+            console.log('Sending data:', dataToSend);
+
+            // Send data to bot
+            try {
+                tg.sendData(JSON.stringify(dataToSend));
+                
+                // Close after a short delay
+                setTimeout(() => {
+                    tg.close();
+                }, 500);
+            } catch (error) {
+                console.error('Error sending data:', error);
+                tg.showAlert('Error: ' + error.message);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        <span>Create Now</span>
+                    `;
+                }
+            }
         }
 
-        // Initial render
+        // Initialize
+        getUserData();
         render();
     </script>
 </body>
