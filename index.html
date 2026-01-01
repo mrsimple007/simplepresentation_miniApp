@@ -58,17 +58,34 @@
         console.log('window.Telegram exists:', typeof window.Telegram !== 'undefined');
         console.log('WebApp exists:', typeof tg !== 'undefined');
         
+
         // Check if we're actually in Telegram
         if (tg) {
             tg.ready();
             tg.expand();
             
-            isInTelegram = !!tg.initDataUnsafe?.user;
+            // Better detection - check multiple indicators
+            const hasInitData = tg.initData && tg.initData.length > 0;
+            const hasUser = !!tg.initDataUnsafe?.user;
+            const hasPlatform = tg.platform !== 'unknown';
+            
+            isInTelegram = hasInitData || hasUser || hasPlatform;
             
             console.log('WebApp Version:', tg.version);
             console.log('Platform:', tg.platform);
+            console.log('InitData length:', tg.initData?.length || 0);
             console.log('User:', tg.initDataUnsafe?.user);
+            console.log('Has InitData:', hasInitData);
+            console.log('Has User:', hasUser);
+            console.log('Has Platform:', hasPlatform);
             console.log('Is in Telegram:', isInTelegram);
+            
+            // For development/testing, you might want to bypass this check
+            // Remove this condition in production if you want strict checking
+            if (!isInTelegram && window.location.hostname === 'localhost') {
+                console.warn('⚠️ Running in dev mode - bypassing Telegram check');
+                isInTelegram = true;
+            }
             
             if (!isInTelegram) {
                 console.warn('⚠️ Not properly opened in Telegram!');
@@ -78,7 +95,10 @@
                             <div class="text-6xl mb-4">⚠️</div>
                             <h2 class="text-xl font-bold mb-2">Open in Telegram</h2>
                             <p class="text-gray-400 mb-4">This Mini App must be opened through Telegram bot.</p>
-                            <p class="text-sm text-gray-500">Use /webapp command in the bot</p>
+                            <p class="text-sm text-gray-500 mb-4">Use /webapp command in the bot</p>
+                            <button onclick="location.reload()" class="px-6 py-3 bg-indigo-600 rounded-xl font-medium">
+                                🔄 Retry
+                            </button>
                         </div>
                     </div>
                 `;
@@ -86,17 +106,6 @@
                 // Successfully in Telegram - start app
                 initializeApp();
             }
-        } else {
-            console.error('❌ Telegram WebApp not available');
-            document.getElementById('app').innerHTML = `
-                <div class="min-h-screen flex items-center justify-center p-6">
-                    <div class="glass-effect rounded-3xl p-8 max-w-md text-center">
-                        <div class="text-6xl mb-4">❌</div>
-                        <h2 class="text-xl font-bold mb-2">Error</h2>
-                        <p class="text-gray-400">Telegram WebApp not loaded</p>
-                    </div>
-                </div>
-            `;
         }
 
         let currentStep = 'home';
