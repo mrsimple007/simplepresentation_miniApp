@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Creator</title>
+    <title>Simple Slides</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -42,69 +42,228 @@
     <script>
 let tg=window.Telegram?.WebApp;
 if(tg){tg.ready();tg.expand()}
-let step='home',user={balance:0,created:0,lang:'uz',theme:'dark',name:'',id:''},form={content:'',slides:8,style:'formal',language:'auto',type:'presentation',pages:10,author:'',university:''},showLang=false,stylePage=1;
+
+// State management
+let step='home',user={balance:0,created:0,lang:'uz',theme:'dark',name:'',id:''},form={content:'',slides:8,style:'formal',language:'auto',type:'presentation',pages:10,author:'',university:''},showLang=false,stylePage=1,isSending=false;
+
 const TYPES={presentation:{id:'presentation',name:{uz:'📊 Taqdimot',ru:'📊 Презентация',en:'📊 Presentation'},min:1,max:21,def:8,isPres:true},referat:{id:'referat',name:{uz:'📚 Referat',ru:'📚 Реферат',en:'📚 Referat'},min:1,max:25,def:12},mustaqil:{id:'mustaqil',name:{uz:'✍️ Mustaqil ish',ru:'✍️ Самостоятельная работа',en:'✍️ Independent Work'},min:1,max:15,def:6},kurs:{id:'kurs',name:{uz:'🎓 Kurs ishi',ru:'🎓 Курсовая работа',en:'🎓 Course Work'},min:25,max:35,def:30},maqola:{id:'maqola',name:{uz:'📰 Maqola',ru:'📰 Статья',en:'📰 Article'},min:5,max:10,def:8},tezis:{id:'tezis',name:{uz:'📋 Tezis',ru:'📋 Тезисы',en:'📋 Thesis'},min:1,max:2,def:1},insho:{id:'insho',name:{uz:'✏️ Insho',ru:'✏️ Эссе',en:'✏️ Essay'},min:1,max:3,def:2},resume:{id:'resume',name:{uz:'👤 Rezyume',ru:'👤 Резюме',en:'👤 Resume'},isRes:true}};
-const T={uz:{title:'AI Creator',subtitle:'AI kuchi bilan yarating',balance:'Balans',created:'Yaratilgan',docs:'hujjat',userId:'ID',createPresentation:'Taqdimot',createReferat:'Referat',createMustaqil:'Mustaqil ish',createKurs:'Kurs ishi',createMaqola:'Maqola',createTezis:'Tezis',createInsho:'Insho',createResume:'Rezyume',back:'Orqaga',contentLabel:'Mazmun yoki mavzu',contentPlaceholder:'Mavzuni kiriting...',slidesLabel:'Slaydlar soni',pagesLabel:'Sahifalar soni',languageLabel:'Til',styleLabel:'Stil',authorLabel:'Muallif',authorPlaceholder:'Ismingizni kiriting',universityLabel:'Universitet',universityPlaceholder:'Universitet nomini kiriting',continueToBot:'Botda davom etish',sendingToBot:'Botga yuborilmoqda',successSent:'Yuborildi!',closingIn:'Yopilmoqda',enterContent:'Mazmun kiriting!',insufficientBalance:'Balans yetarli emas',topUpBalance:'Balansni to\'ldirish',auto:'Avtomatik',uzbek:'O\'zbek',russian:'Rus',english:'Ingliz',selectStyle:'Stilni tanlang',prev:'Oldingi',next:'Keyingi'},ru:{title:'AI Creator',subtitle:'Создавайте с AI',balance:'Баланс',created:'Создано',docs:'док.',userId:'ID',createPresentation:'Презентация',createReferat:'Реферат',createMustaqil:'Самост. работа',createKurs:'Курсовая',createMaqola:'Статья',createTezis:'Тезисы',createInsho:'Эссе',createResume:'Резюме',back:'Назад',contentLabel:'Содержание или тема',contentPlaceholder:'Введите тему...',slidesLabel:'Количество слайдов',pagesLabel:'Количество страниц',languageLabel:'Язык',styleLabel:'Стиль',authorLabel:'Автор',authorPlaceholder:'Ваше имя',universityLabel:'Университет',universityPlaceholder:'Название университета',continueToBot:'Продолжить в боте',sendingToBot:'Отправка в бот',successSent:'Отправлено!',closingIn:'Закрытие через',enterContent:'Введите содержание!',insufficientBalance:'Недостаточно средств',topUpBalance:'Пополнить баланс',auto:'Авто',uzbek:'Узбекский',russian:'Русский',english:'Английский',selectStyle:'Выберите стиль',prev:'Назад',next:'Далее'},en:{title:'AI Creator',subtitle:'Create with AI',balance:'Balance',created:'Created',docs:'docs',userId:'ID',createPresentation:'Presentation',createReferat:'Referat',createMustaqil:'Independent Work',createKurs:'Course Work',createMaqola:'Article',createTezis:'Thesis',createInsho:'Essay',createResume:'Resume',back:'Back',contentLabel:'Content or Topic',contentPlaceholder:'Enter topic...',slidesLabel:'Number of Slides',pagesLabel:'Number of Pages',languageLabel:'Language',styleLabel:'Style',authorLabel:'Author',authorPlaceholder:'Your name',universityLabel:'University',universityPlaceholder:'University name',continueToBot:'Continue to Bot',sendingToBot:'Sending to bot',successSent:'Sent!',closingIn:'Closing in',enterContent:'Enter content!',insufficientBalance:'Insufficient balance',topUpBalance:'Top Up Balance',auto:'Auto',uzbek:'Uzbek',russian:'Russian',english:'English',selectStyle:'Select Style',prev:'Previous',next:'Next'}};
+
+const T={uz:{title:'Simple Slides',subtitle:'AI kuchi bilan yarating',balance:'Balans',created:'Yaratilgan',docs:'hujjat',userId:'ID',createPresentation:'Taqdimot',createReferat:'Referat',createMustaqil:'Mustaqil ish',createKurs:'Kurs ishi',createMaqola:'Maqola',createTezis:'Tezis',createInsho:'Insho',createResume:'Rezyume',back:'Orqaga',contentLabel:'Mazmun yoki mavzu',contentPlaceholder:'Mavzuni kiriting...',slidesLabel:'Slaydlar soni',pagesLabel:'Sahifalar soni',languageLabel:'Til',styleLabel:'Stil',authorLabel:'Muallif',authorPlaceholder:'Ismingizni kiriting',universityLabel:'Universitet',universityPlaceholder:'Universitet nomini kiriting',continueToBot:'Botda davom etish',sendingToBot:'Botga yuborilmoqda',successSent:'Yuborildi!',closingIn:'Yopilmoqda',enterContent:'Mazmun kiriting!',insufficientBalance:'Balans yetarli emas',topUpBalance:'Balansni to\'ldirish',auto:'Avtomatik',uzbek:'O\'zbek',russian:'Rus',english:'Ingliz',selectStyle:'Stilni tanlang',prev:'Oldingi',next:'Keyingi'},ru:{title:'Simple Slides',subtitle:'Создавайте с AI',balance:'Баланс',created:'Создано',docs:'док.',userId:'ID',createPresentation:'Презентация',createReferat:'Реферат',createMustaqil:'Самост. работа',createKurs:'Курсовая',createMaqola:'Статья',createTezis:'Тезисы',createInsho:'Эссе',createResume:'Резюме',back:'Назад',contentLabel:'Содержание или тема',contentPlaceholder:'Введите тему...',slidesLabel:'Количество слайдов',pagesLabel:'Количество страниц',languageLabel:'Язык',styleLabel:'Стиль',authorLabel:'Автор',authorPlaceholder:'Ваше имя',universityLabel:'Университет',universityPlaceholder:'Название университета',continueToBot:'Продолжить в боте',sendingToBot:'Отправка в бот',successSent:'Отправлено!',closingIn:'Закрытие через',enterContent:'Введите содержание!',insufficientBalance:'Недостаточно средств',topUpBalance:'Пополнить баланс',auto:'Авто',uzbek:'Узбекский',russian:'Русский',english:'Английский',selectStyle:'Выберите стиль',prev:'Назад',next:'Далее'},en:{title:'Simple Slides',subtitle:'Create with AI',balance:'Balance',created:'Created',docs:'docs',userId:'ID',createPresentation:'Presentation',createReferat:'Referat',createMustaqil:'Independent Work',createKurs:'Course Work',createMaqola:'Article',createTezis:'Thesis',createInsho:'Essay',createResume:'Resume',back:'Back',contentLabel:'Content or Topic',contentPlaceholder:'Enter topic...',slidesLabel:'Number of Slides',pagesLabel:'Number of Pages',languageLabel:'Language',styleLabel:'Style',authorLabel:'Author',authorPlaceholder:'Your name',universityLabel:'University',universityPlaceholder:'University name',continueToBot:'Continue to Bot',sendingToBot:'Sending to bot',successSent:'Sent!',closingIn:'Closing in',enterContent:'Enter content!',insufficientBalance:'Insufficient balance',topUpBalance:'Top Up Balance',auto:'Auto',uzbek:'Uzbek',russian:'Russian',english:'English',selectStyle:'Select Style',prev:'Previous',next:'Next'}};
+
 const STYLES_P1=[{id:'formal',name:'📚 Formal'},{id:'creative',name:'🎨 Creative'},{id:'casual',name:'😊 Casual'},{id:'academic',name:'🎓 Academic'},{id:'style_win_1',name:'🏆 Win 1'},{id:'style_win_2',name:'🥇 Win 2'},{id:'style_1',name:'1'},{id:'style_2',name:'2'},{id:'style_3',name:'3'},{id:'style_4',name:'4'},{id:'style_5',name:'5'},{id:'style_6',name:'6'}];
 const STYLES_P2=[{id:'style_7',name:'7'},{id:'style_8',name:'8'},{id:'style_9',name:'9'},{id:'style_10',name:'10'},{id:'style_11',name:'11'},{id:'style_12',name:'12'},{id:'style_13',name:'13'},{id:'style_14',name:'14'}];
 const RSTYLES=[{id:'classic',name:'Classic'},{id:'modern',name:'Modern'},{id:'tech',name:'Tech'}];
 const STYLE_IMG_1='https://enygxibkgjoqjmqsiwdi.supabase.co/storage/v1/object/sign/pptbackground/back_images/1st_overall.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xMDBjOGJkMC02NTRhLTQxNTMtYWQ5Zi1kNmNlMzU3YjMzZGYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcHRiYWNrZ3JvdW5kL2JhY2tfaW1hZ2VzLzFzdF9vdmVyYWxsLnBuZyIsImlhdCI6MTc2NTUzNzYwMSwiZXhwIjoxNzk3MDczNjAxfQ.U-VQdYLilFdLUJmV76V3ZYCNhobA1AVcdLRLa7LRUT4';
 const STYLE_IMG_2='https://enygxibkgjoqjmqsiwdi.supabase.co/storage/v1/object/sign/pptbackground/back_images/2nd_overall_back_images.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xMDBjOGJkMC02NTRhLTQxNTMtYWQ5Zi1kNmNlMzU3YjMzZGYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcHRiYWNrZ3JvdW5kL2JhY2tfaW1hZ2VzLzJuZF9vdmVyYWxsX2JhY2tfaW1hZ2VzLnBuZyIsImlhdCI6MTc2MzYzNzIyMSwiZXhwIjoxNzk1MTczMjIxfQ.wYx3Q7_ZYXh00ut-otgqRN4Ksdzu_rECMpmaiOy1ggg';
-function getData(){const u=tg?.initDataUnsafe?.user;if(u){user.balance=15000;user.created=24;user.lang=u.language_code==='ru'?'ru':u.language_code==='en'?'en':'uz';user.name=u.first_name+(u.last_name?' '+u.last_name:'');user.id=u.id}else{user.name='Test User';user.id='123456789';user.balance=15000;user.created=24}}
+
+function getData(){
+    const u=tg?.initDataUnsafe?.user;
+    if(u){
+        user.balance=15000;
+        user.created=24;
+        user.lang=u.language_code==='ru'?'ru':u.language_code==='en'?'en':'uz';
+        user.name=u.first_name+(u.last_name?' '+u.last_name:'');
+        user.id=u.id;
+        console.log('User data loaded:', user);
+    }else{
+        user.name='Test User';
+        user.id='123456789';
+        user.balance=15000;
+        user.created=24;
+        console.log('Test mode - no Telegram data');
+    }
+}
+
 function t(k){return T[user.lang][k]||T['uz'][k]}
 function toggleTheme(){user.theme=user.theme==='dark'?'light':'dark';document.body.className=user.theme;render()}
 function toggleLang(){showLang=!showLang;render()}
 function changeLang(l){user.lang=l;showLang=false;render()}
 function theme(){return user.theme==='dark'?{bg:'bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950',txt:'text-white',sec:'text-white/70',glass:'glass-dark',inp:'bg-gray-900/50 border-gray-700 text-white placeholder-gray-500',card:'bg-gray-800/50 text-gray-300'}:{bg:'bg-gradient-to-br from-gray-50 via-white to-gray-100',txt:'text-gray-900',sec:'text-gray-600',glass:'glass-light',inp:'bg-white border-gray-300 text-gray-900 placeholder-gray-400',card:'bg-white text-gray-700'}}
-function render(){const a=document.getElementById('app'),th=theme();if(step==='home')renderHome(a,th);else if(step==='create')renderForm(a,th);else if(step==='sending')renderSend(a,th)}
-function renderHome(a,th){a.innerHTML=`<div class="min-h-screen ${th.bg} slide-in"><div class="gradient-bg p-6 rounded-b-3xl shadow-2xl relative"><div class="max-w-2xl mx-auto"><div class="flex items-center justify-between mb-4"><div><h1 class="text-2xl font-bold">${t('title')}</h1><p class="text-white/70 text-sm">${t('subtitle')}</p></div><div class="flex items-center space-x-2"><div onclick="toggleLang()" class="hamburger text-white"><span></span><span></span><span></span></div><button onclick="toggleTheme()" class="w-10 h-10 ${th.glass} rounded-full flex items-center justify-center text-xl">${user.theme==='dark'?'☀️':'🌙'}</button></div></div><div class="${th.glass} rounded-2xl p-4 mb-3"><div class="text-white/60 text-xs mb-1">👤 ${user.name}</div><div class="text-sm font-medium">${t('userId')}: ${user.id}</div></div><div class="grid grid-cols-2 gap-3"><div class="${th.glass} rounded-2xl p-4"><div class="text-white/60 text-xs mb-1">${t('balance')}</div><div class="text-xl font-bold">${user.balance.toLocaleString()} UZS</div></div><div class="${th.glass} rounded-2xl p-4"><div class="text-white/60 text-xs mb-1">${t('created')}</div><div class="text-xl font-bold">${user.created} ${t('docs')}</div></div></div></div>${showLang?`<div class="lang-menu ${user.theme==='light'?'light':''}"><div onclick="changeLang('uz')" class="lang-item ${user.lang==='uz'?'active':''} ${th.txt}"><span>🇺🇿</span><span>${t('uzbek')}</span></div><div onclick="changeLang('ru')" class="lang-item ${user.lang==='ru'?'active':''} ${th.txt}"><span>🇷🇺</span><span>${t('russian')}</span></div><div onclick="changeLang('en')" class="lang-item ${user.lang==='en'?'active':''} ${th.txt}"><span>🇬🇧</span><span>${t('english')}</span></div></div>`:''}</div><div class="max-w-2xl mx-auto p-6"><div class="grid grid-cols-2 gap-3 mb-3"><button onclick="startCreate('presentation')" class="gradient-bg text-white rounded-2xl p-5 shadow-xl card-hover"><div class="text-3xl mb-2">📊</div><div class="font-semibold text-sm">${t('createPresentation')}</div></button><button onclick="startCreate('referat')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">📚</div><div class="font-semibold text-sm">${t('createReferat')}</div></button></div><div class="grid grid-cols-2 gap-3 mb-3"><button onclick="startCreate('mustaqil')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">✍️</div><div class="font-semibold text-sm">${t('createMustaqil')}</div></button><button onclick="startCreate('kurs')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">🎓</div><div class="font-semibold text-sm">${t('createKurs')}</div></button></div><div class="grid grid-cols-2 gap-3 mb-3"><button onclick="startCreate('maqola')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">📰</div><div class="font-semibold text-sm">${t('createMaqola')}</div></button><button onclick="startCreate('tezis')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">📋</div><div class="font-semibold text-sm">${t('createTezis')}</div></button></div><div class="grid grid-cols-2 gap-3"><button onclick="startCreate('insho')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">✏️</div><div class="font-semibold text-sm">${t('createInsho')}</div></button><button onclick="startCreate('resume')" class="gradient-bg text-white rounded-2xl p-5 shadow-xl card-hover"><div class="text-3xl mb-2">👤</div><div class="font-semibold text-sm">${t('createResume')}</div></button></div></div></div>`}
-function renderForm(a,th){const dt=TYPES[form.type],isPres=dt.isPres,isRes=dt.isRes,isDoc=!isPres&&!isRes,styles=isPres?(stylePage===1?STYLES_P1:STYLES_P2):isRes?RSTYLES:[],minP=dt.min||1,maxP=dt.max||30;if(!form.pages||form.pages<minP||form.pages>maxP)form.pages=isPres?form.slides:dt.def;const styleImg=isPres?(stylePage===1?STYLE_IMG_1:STYLE_IMG_2):'';a.innerHTML=`<div class="min-h-screen ${th.bg} slide-in"><div class="max-w-2xl mx-auto p-6"><button onclick="goHome()" class="mb-6 text-indigo-400 font-medium flex items-center space-x-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg><span>${t('back')}</span></button><div class="${th.glass} rounded-3xl p-6 mb-6"><h2 class="text-2xl font-bold ${th.txt}">${dt.name[user.lang]}</h2></div><div class="space-y-5"><div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('contentLabel')}</label><textarea id="content-input" placeholder="${t('contentPlaceholder')}" class="w-full h-40 px-4 py-3 ${th.inp} border rounded-xl resize-none">${form.content}</textarea></div>${isDoc?`<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('authorLabel')}</label><input type="text" id="author-input" placeholder="${t('authorPlaceholder')}" value="${form.author}" class="w-full px-4 py-3 ${th.inp} border rounded-xl"></div><div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('universityLabel')}</label><input type="text" id="university-input" placeholder="${t('universityPlaceholder')}" value="${form.university}" class="w-full px-4 py-3 ${th.inp} border rounded-xl"></div>`:''}${isPres?`<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-4">${t('slidesLabel')}: <span id="pages-value" class="text-indigo-400 font-bold">${form.pages}</span></label><input type="range" id="pages-input" min="${minP}" max="${maxP}" value="${form.pages}" class="w-full cursor-pointer"><div class="flex justify-between text-xs ${th.sec} mt-3"><span>${minP}</span><span>${maxP}</span></div></div>`:!isRes?`<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-4">${t('pagesLabel')}: <span id="pages-value" class="text-indigo-400 font-bold">${form.pages}</span></label><input type="range" id="pages-input" min="${minP}" max="${maxP}" value="${form.pages}" class="w-full cursor-pointer"><div class="flex justify-between text-xs ${th.sec} mt-3"><span>${minP}</span><span>${maxP}</span></div></div>`:''}<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('languageLabel')}</label><div class="grid grid-cols-2 gap-3">${[{c:'auto',l:'🤖 '+t('auto')},{c:'uz',l:'🇺🇿 '+t('uzbek')},{c:'ru',l:'🇷🇺 '+t('russian')},{c:'en',l:'🇬🇧 '+t('english')}].map(lg=>`<button onclick="selectLang('${lg.c}')" class="px-4 py-3 rounded-xl font-medium ${form.language===lg.c?'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg':th.card+' hover:opacity-80'}">${lg.l}</button>`).join('')}</div></div>${isPres||isRes?`<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('selectStyle')}</label>${isPres&&styleImg?`<img src="${styleImg}" alt="Style Preview" class="style-preview">`:''}${isPres?`<div class="pagination"><button onclick="prevStylePage()" class="page-btn ${stylePage===1?'opacity-50 cursor-not-allowed':th.card+' hover:opacity-80'}" ${stylePage===1?'disabled':''}>${t('prev')}</button><span class="${th.txt} font-bold">${stylePage}/2</span><button onclick="nextStylePage()" class="page-btn ${stylePage===2?'opacity-50 cursor-not-allowed':th.card+' hover:opacity-80'}" ${stylePage===2?'disabled':''}>${t('next')}</button></div>`:''}<div class="${isPres?'style-grid mt-4':'space-y-3'}">${styles.map(s=>`<button onclick="selectStyle('${s.id}')" class="${isPres?'px-3 py-3 rounded-xl font-medium text-center':'w-full px-4 py-3 rounded-xl font-medium text-left'} ${form.style===s.id?'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg':th.card+' hover:opacity-80'}">${s.name}</button>`).join('')}</div></div>`:''}<button onclick="validate()" class="w-full gradient-bg text-white rounded-2xl py-4 font-bold shadow-2xl card-hover flex items-center justify-center space-x-3"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg><span>${t('continueToBot')}</span></button></div></div></div>`;setTimeout(()=>{const ci=document.getElementById('content-input');if(ci)ci.addEventListener('input',e=>form.content=e.target.value);const ai=document.getElementById('author-input');if(ai)ai.addEventListener('input',e=>form.author=e.target.value);const ui=document.getElementById('university-input');if(ui)ui.addEventListener('input',e=>form.university=e.target.value);const pi=document.getElementById('pages-input');if(pi)pi.addEventListener('input',e=>{form.pages=parseInt(e.target.value);if(isPres)form.slides=form.pages;document.getElementById('pages-value').textContent=form.pages})},100)}
-function renderSend(a,th){a.innerHTML=`<div class="min-h-screen ${th.bg} flex items-center justify-center slide-in"><div class="text-center px-6"><div class="success-anim mb-6"><div class="w-24 h-24 mx-auto bg-green-500 rounded-full flex items-center justify-center shadow-lg"><svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div></div><h2 class="text-2xl font-bold mb-2 ${th.txt}">${t('successSent')}</h2><p class="${th.sec} mb-6">${t('closingIn')} <span id="timer" class="font-bold">5</span> s</p></div></div>`;let c=5;const tm=document.getElementById('timer'),iv=setInterval(()=>{c--;if(tm)tm.textContent=c;if(c<=0){clearInterval(iv);goHome()}},1000)}
-function startCreate(type){form.type=type;const dt=TYPES[type];if(dt.isPres){form.pages=dt.def;form.slides=dt.def}else if(dt.isRes){form.pages=1}else{form.pages=dt.def}form.content='';form.style=dt.isPres?'formal':dt.isRes?'classic':'';form.language='auto';form.author='';form.university='';stylePage=1;step='create';render()}
-function goHome(){step='home';render()}
-function selectLang(l){form.language=l;render()}
-function selectStyle(s){form.style=s;render()}
-function prevStylePage(){if(stylePage>1){stylePage--;render()}}
-function nextStylePage(){if(stylePage<2){stylePage++;render()}}
-function validate(){
-    if(!form.content.trim()){
-        alert(t('enterContent'));
-        return
-    }
-    const cost=calcCost();
-    if(user.balance<cost){
-        if(confirm(t('insufficientBalance')+'. '+t('topUpBalance')+'?')){
-            window.open('https://t.me/YourTopUpBot','_blank')
+
+function render(){
+    const a=document.getElementById('app'),th=theme();
+    if(step==='home')renderHome(a,th);
+    else if(step==='create')renderForm(a,th);
+    else if(step==='sending')renderSend(a,th);
+}
+
+function renderHome(a,th){
+    a.innerHTML=`<div class="min-h-screen ${th.bg} slide-in"><div class="gradient-bg p-6 rounded-b-3xl shadow-2xl relative"><div class="max-w-2xl mx-auto"><div class="flex items-center justify-between mb-4"><div><h1 class="text-2xl font-bold">${t('title')}</h1><p class="text-white/70 text-sm">${t('subtitle')}</p></div><div class="flex items-center space-x-2"><div onclick="toggleLang()" class="hamburger text-white"><span></span><span></span><span></span></div><button onclick="toggleTheme()" class="w-10 h-10 ${th.glass} rounded-full flex items-center justify-center text-xl">${user.theme==='dark'?'☀️':'🌙'}</button></div></div><div class="${th.glass} rounded-2xl p-4 mb-3"><div class="text-white/60 text-xs mb-1">👤 ${user.name}</div><div class="text-sm font-medium">${t('userId')}: ${user.id}</div></div><div class="grid grid-cols-2 gap-3"><div class="${th.glass} rounded-2xl p-4"><div class="text-white/60 text-xs mb-1">${t('balance')}</div><div class="text-xl font-bold">${user.balance.toLocaleString()} UZS</div></div><div class="${th.glass} rounded-2xl p-4"><div class="text-white/60 text-xs mb-1">${t('created')}</div><div class="text-xl font-bold">${user.created} ${t('docs')}</div></div></div></div>${showLang?`<div class="lang-menu ${user.theme==='light'?'light':''}"><div onclick="changeLang('uz')" class="lang-item ${user.lang==='uz'?'active':''} ${th.txt}"><span>🇺🇿</span><span>${t('uzbek')}</span></div><div onclick="changeLang('ru')" class="lang-item ${user.lang==='ru'?'active':''} ${th.txt}"><span>🇷🇺</span><span>${t('russian')}</span></div><div onclick="changeLang('en')" class="lang-item ${user.lang==='en'?'active':''} ${th.txt}"><span>🇬🇧</span><span>${t('english')}</span></div></div>`:''}</div><div class="max-w-2xl mx-auto p-6"><div class="grid grid-cols-2 gap-3 mb-3"><button onclick="startCreate('presentation')" class="gradient-bg text-white rounded-2xl p-5 shadow-xl card-hover"><div class="text-3xl mb-2">📊</div><div class="font-semibold text-sm">${t('createPresentation')}</div></button><button onclick="startCreate('referat')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">📚</div><div class="font-semibold text-sm">${t('createReferat')}</div></button></div><div class="grid grid-cols-2 gap-3 mb-3"><button onclick="startCreate('mustaqil')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">✍️</div><div class="font-semibold text-sm">${t('createMustaqil')}</div></button><button onclick="startCreate('kurs')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">🎓</div><div class="font-semibold text-sm">${t('createKurs')}</div></button></div><div class="grid grid-cols-2 gap-3 mb-3"><button onclick="startCreate('maqola')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">📰</div><div class="font-semibold text-sm">${t('createMaqola')}</div></button><button onclick="startCreate('tezis')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">📋</div><div class="font-semibold text-sm">${t('createTezis')}</div></button></div><div class="grid grid-cols-2 gap-3"><button onclick="startCreate('insho')" class="${th.glass} rounded-2xl p-5 card-hover ${th.txt}"><div class="text-3xl mb-2">✏️</div><div class="font-semibold text-sm">${t('createInsho')}</div></button><button onclick="startCreate('resume')" class="gradient-bg text-white rounded-2xl p-5 shadow-xl card-hover"><div class="text-3xl mb-2">👤</div><div class="font-semibold text-sm">${t('createResume')}</div></button></div></div></div>`;
+}
+
+function renderForm(a,th){
+    const dt=TYPES[form.type],isPres=dt.isPres,isRes=dt.isRes,isDoc=!isPres&&!isRes,styles=isPres?(stylePage===1?STYLES_P1:STYLES_P2):isRes?RSTYLES:[],minP=dt.min||1,maxP=dt.max||30;
+    if(!form.pages||form.pages<minP||form.pages>maxP)form.pages=isPres?form.slides:dt.def;
+    const styleImg=isPres?(stylePage===1?STYLE_IMG_1:STYLE_IMG_2):'';
+    
+    a.innerHTML=`<div class="min-h-screen ${th.bg} slide-in"><div class="max-w-2xl mx-auto p-6"><button onclick="goHome()" class="mb-6 text-indigo-400 font-medium flex items-center space-x-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg><span>${t('back')}</span></button><div class="${th.glass} rounded-3xl p-6 mb-6"><h2 class="text-2xl font-bold ${th.txt}">${dt.name[user.lang]}</h2></div><div class="space-y-5"><div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('contentLabel')}</label><textarea id="content-input" placeholder="${t('contentPlaceholder')}" class="w-full h-40 px-4 py-3 ${th.inp} border rounded-xl resize-none">${form.content}</textarea></div>${isDoc?`<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('authorLabel')}</label><input type="text" id="author-input" placeholder="${t('authorPlaceholder')}" value="${form.author}" class="w-full px-4 py-3 ${th.inp} border rounded-xl"></div><div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('universityLabel')}</label><input type="text" id="university-input" placeholder="${t('universityPlaceholder')}" value="${form.university}" class="w-full px-4 py-3 ${th.inp} border rounded-xl"></div>`:''}${isPres?`<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-4">${t('slidesLabel')}: <span id="pages-value" class="text-indigo-400 font-bold">${form.pages}</span></label><input type="range" id="pages-input" min="${minP}" max="${maxP}" value="${form.pages}" class="w-full cursor-pointer"><div class="flex justify-between text-xs ${th.sec} mt-3"><span>${minP}</span><span>${maxP}</span></div></div>`:!isRes?`<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-4">${t('pagesLabel')}: <span id="pages-value" class="text-indigo-400 font-bold">${form.pages}</span></label><input type="range" id="pages-input" min="${minP}" max="${maxP}" value="${form.pages}" class="w-full cursor-pointer"><div class="flex justify-between text-xs ${th.sec} mt-3"><span>${minP}</span><span>${maxP}</span></div></div>`:''}<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('languageLabel')}</label><div class="grid grid-cols-2 gap-3">${[{c:'auto',l:'🤖 '+t('auto')},{c:'uz',l:'🇺🇿 '+t('uzbek')},{c:'ru',l:'🇷🇺 '+t('russian')},{c:'en',l:'🇬🇧 '+t('english')}].map(lg=>`<button onclick="selectLang('${lg.c}')" class="px-4 py-3 rounded-xl font-medium ${form.language===lg.c?'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg':th.card+' hover:opacity-80'}">${lg.l}</button>`).join('')}</div></div>${isPres||isRes?`<div class="${th.glass} rounded-2xl p-5"><label class="block text-sm font-medium ${th.sec} mb-3">${t('selectStyle')}</label>${isPres&&styleImg?`<img src="${styleImg}" alt="Style Preview" class="style-preview">`:''}${isPres?`<div class="pagination"><button onclick="prevStylePage()" class="page-btn ${stylePage===1?'opacity-50 cursor-not-allowed':th.card+' hover:opacity-80'}" ${stylePage===1?'disabled':''}>${t('prev')}</button><span class="${th.txt} font-bold">${stylePage}/2</span><button onclick="nextStylePage()" class="page-btn ${stylePage===2?'opacity-50 cursor-not-allowed':th.card+' hover:opacity-80'}" ${stylePage===2?'disabled':''}>${t('next')}</button></div>`:''}<div class="${isPres?'style-grid mt-4':'space-y-3'}">${styles.map(s=>`<button onclick="selectStyle('${s.id}')" class="${isPres?'px-3 py-3 rounded-xl font-medium text-center':'w-full px-4 py-3 rounded-xl font-medium text-left'} ${form.style===s.id?'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg':th.card+' hover:opacity-80'}">${s.name}</button>`).join('')}</div></div>`:''}<button onclick="validate()" class="w-full gradient-bg text-white rounded-2xl py-4 font-bold shadow-2xl card-hover flex items-center justify-center space-x-3" ${isSending?'disabled':''}><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg><span>${isSending?t('sendingToBot'):t('continueToBot')}</span></button></div></div></div>`;
+    
+    setTimeout(()=>{
+        const ci=document.getElementById('content-input');
+        if(ci)ci.addEventListener('input',e=>form.content=e.target.value);
+        const ai=document.getElementById('author-input');
+        if(ai)ai.addEventListener('input',e=>form.author=e.target.value);
+        const ui=document.getElementById('university-input');
+        if(ui)ui.addEventListener('input',e=>form.university=e.target.value);
+        const pi=document.getElementById('pages-input');
+        if(pi)pi.addEventListener('input',e=>{
+            form.pages=parseInt(e.target.value);
+            if(isPres)form.slides=form.pages;
+            document.getElementById('pages-value').textContent=form.pages;
+        });
+    },100);
+}
+
+function renderSend(a,th){
+    a.innerHTML=`<div class="min-h-screen ${th.bg} flex items-center justify-center slide-in"><div class="text-center px-6"><div class="success-anim mb-6"><div class="w-24 h-24 mx-auto bg-green-500 rounded-full flex items-center justify-center shadow-lg"><svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></div></div><h2 class="text-2xl font-bold mb-2 ${th.txt}">${t('successSent')}</h2><p class="${th.sec} mb-6">${t('closingIn')} <span id="timer" class="font-bold">5</span> s</p></div></div>`;
+    
+    let c=5;
+    const tm=document.getElementById('timer'),iv=setInterval(()=>{
+        c--;
+        if(tm)tm.textContent=c;
+        if(c<=0){
+            clearInterval(iv);
+            if(tg&&tg.close){
+                tg.close();
+            }
         }
-        return
+    },1000);
+}
+
+function startCreate(type){
+    form.type=type;
+    const dt=TYPES[type];
+    if(dt.isPres){
+        form.pages=dt.def;
+        form.slides=dt.def;
+    }else if(dt.isRes){
+        form.pages=1;
+    }else{
+        form.pages=dt.def;
     }
-    
-    // CRITICAL FIX: Actually send the data to Telegram
-    const dataToSend = {
-        action: 'create_presentation',
-        content: form.content,
-        slides: form.slides || form.pages,
-        style: form.style,
-        language: form.language,
-        type: form.type,
-        pages: form.pages,
-        author: form.author || '',
-        university: form.university || ''
-    };
-    
-    // Send data to bot via Telegram WebApp API
-    if (tg && tg.sendData) {
-        tg.sendData(JSON.stringify(dataToSend));
-        // Note: The mini app will close automatically after sendData
-    } else {
-        console.error('Telegram WebApp not available');
-        alert('Error: Telegram WebApp not available');
+    form.content='';
+    form.style=dt.isPres?'formal':dt.isRes?'classic':'';
+    form.language='auto';
+    form.author='';
+    form.university='';
+    stylePage=1;
+    isSending=false;
+    step='create';
+    render();
+}
+
+function goHome(){
+    step='home';
+    isSending=false;
+    render();
+}
+
+function selectLang(l){
+    form.language=l;
+    render();
+}
+
+function selectStyle(s){
+    form.style=s;
+    render();
+}
+
+function prevStylePage(){
+    if(stylePage>1){
+        stylePage--;
+        render();
     }
 }
 
-function calcCost(){const dt=TYPES[form.type];let base=0;if(dt.isPres){base=form.slides*500}else if(dt.isRes){base=3000}else{base=form.pages*400}return base}
-window.onload=()=>{getData();render()};
-document.addEventListener('click',e=>{if(!e.target.closest('.hamburger')&&!e.target.closest('.lang-menu')){if(showLang){showLang=false;render()}}});
+function nextStylePage(){
+    if(stylePage<2){
+        stylePage++;
+        render();
+    }
+}
+
+function validate(){
+    // Prevent double submission
+    if(isSending){
+        console.log('Already sending, ignoring...');
+        return;
+    }
+    
+    if(!form.content.trim()){
+        alert(t('enterContent'));
+        return;
+    }
+    
+    const cost=calcCost();
+    if(user.balance<cost){
+        if(confirm(t('insufficientBalance')+'. '+t('topUpBalance')+'?')){
+            window.open('https://t.me/YourTopUpBot','_blank');
+        }
+        return;
+    }
+    
+    // Set sending state
+    isSending=true;
+    step='sending';
+    render();
+    
+    const dataToSend={
+        action:'create_presentation',
+        content:form.content,
+        slides:form.slides||form.pages,
+        style:form.style,
+        language:form.language,
+        type:form.type,
+        pages:form.pages,
+        author:form.author||'',
+        university:form.university||''
+    };
+    
+    try{
+        if(tg && tg.sendData){
+            console.log('Sending data to bot:',dataToSend);
+            tg.sendData(JSON.stringify(dataToSend));
+            console.log('Data sent successfully');
+        }else{
+            console.error('Telegram WebApp not available');
+            alert('Error: Please open this from Telegram');
+            isSending=false;
+            goHome();
+        }
+    }catch(error){
+        console.error('Error sending data:',error);
+        alert('Error sending data. Please try again.');
+        isSending=false;
+        goHome();
+    }
+}
+
+function calcCost(){
+    const dt=TYPES[form.type];
+    let base=0;
+    if(dt.isPres){
+        base=form.slides*500;
+    }else if(dt.isRes){
+        base=3000;
+    }else{
+        base=form.pages*400;
+    }
+    return base;
+}
+
+window.onload=()=>{
+    getData();
+    render();
+};
+
+document.addEventListener('click',e=>{
+    if(!e.target.closest('.hamburger')&&!e.target.closest('.lang-menu')){
+        if(showLang){
+            showLang=false;
+            render();
+        }
+    }
+});
     </script>
 </body>
 </html>
