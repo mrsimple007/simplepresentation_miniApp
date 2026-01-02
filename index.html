@@ -104,17 +104,14 @@
     <script>
         let tg = window.Telegram?.WebApp;
         
-        // Enhanced initialization with debugging
         console.log('=== TELEGRAM WEB APP INITIALIZATION ===');
         console.log('Telegram object exists:', typeof Telegram !== 'undefined');
         console.log('WebApp exists:', typeof tg !== 'undefined');
         
-        // Wait for Telegram WebApp to be fully ready
         if (tg) {
             tg.ready();
             tg.expand();
             
-            // Add a small delay to ensure everything is initialized
             setTimeout(() => {
                 console.log('=== AFTER READY ===');
                 console.log('WebApp Version:', tg.version);
@@ -168,7 +165,6 @@
             { id: 'style_win_2', name: 'Premium', icon: '👑', desc: 'Luxury' }
         ];
 
-        // Fetch user data from Telegram
         function getUserData() {
             const user = tg?.initDataUnsafe?.user;
             if (user) {
@@ -550,19 +546,6 @@
                         <span>Continue to Bot</span>
                     `;
                 }
-            }
-        }
-
-        // Initialize after DOM loads
-        getUserData();
-        render();
-    </script>
-</body>
-</html>linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
-                        <span>Continue to Bot</span>
-                    `;
-                }
                 return;
             }
 
@@ -578,7 +561,6 @@
                 tg.sendData(jsonString);
                 console.log('✓ tg.sendData() executed');
                 
-                // Show success and close after a short delay
                 if (btn) {
                     btn.innerHTML = `
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -609,3 +591,12 @@
                         </svg>
                         <span>Continue to Bot</span>
                     `;
+                }
+            }
+        }
+
+        getUserData();
+        render();
+    </script>
+</body>
+</html>
