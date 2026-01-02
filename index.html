@@ -66,7 +66,42 @@ function selectLang(l){form.language=l;render()}
 function selectStyle(s){form.style=s;render()}
 function prevStylePage(){if(stylePage>1){stylePage--;render()}}
 function nextStylePage(){if(stylePage<2){stylePage++;render()}}
-function validate(){if(!form.content.trim()){alert(t('enterContent'));return}const cost=calcCost();if(user.balance<cost){if(confirm(t('insufficientBalance')+'. '+t('topUpBalance')+'?')){window.open('https://t.me/YourTopUpBot','_blank')}return}user.balance-=cost;user.created+=1;step='sending';render();setTimeout(()=>goHome(),6000)}
+function validate(){
+    if(!form.content.trim()){
+        alert(t('enterContent'));
+        return
+    }
+    const cost=calcCost();
+    if(user.balance<cost){
+        if(confirm(t('insufficientBalance')+'. '+t('topUpBalance')+'?')){
+            window.open('https://t.me/YourTopUpBot','_blank')
+        }
+        return
+    }
+    
+    // CRITICAL FIX: Actually send the data to Telegram
+    const dataToSend = {
+        action: 'create_presentation',
+        content: form.content,
+        slides: form.slides || form.pages,
+        style: form.style,
+        language: form.language,
+        type: form.type,
+        pages: form.pages,
+        author: form.author || '',
+        university: form.university || ''
+    };
+    
+    // Send data to bot via Telegram WebApp API
+    if (tg && tg.sendData) {
+        tg.sendData(JSON.stringify(dataToSend));
+        // Note: The mini app will close automatically after sendData
+    } else {
+        console.error('Telegram WebApp not available');
+        alert('Error: Telegram WebApp not available');
+    }
+}
+
 function calcCost(){const dt=TYPES[form.type];let base=0;if(dt.isPres){base=form.slides*500}else if(dt.isRes){base=3000}else{base=form.pages*400}return base}
 window.onload=()=>{getData();render()};
 document.addEventListener('click',e=>{if(!e.target.closest('.hamburger')&&!e.target.closest('.lang-menu')){if(showLang){showLang=false;render()}}});
