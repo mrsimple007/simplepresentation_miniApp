@@ -60,55 +60,59 @@ const STYLE_IMG_2='https://enygxibkgjoqjmqsiwdi.supabase.co/storage/v1/object/si
 
 async function getData(){
     console.log('=== getData() called ===');
-    console.log('tg object:', tg);
-    console.log('tg.initDataUnsafe:', tg?.initDataUnsafe);
-    console.log('tg.initDataUnsafe.user:', tg?.initDataUnsafe?.user);
-    console.log('window.location.search:', window.location.search);
+    console.log('tg.initData:', tg?.initData);
+    console.log('tg.initDataUnsafe:', JSON.stringify(tg?.initDataUnsafe));
     
-    const params = new URLSearchParams(window.location.search);
-    const balanceParam = params.get('balance');
-    const createdParam = params.get('created');
-    const fullNameParam = params.get('full_name');
-    const universityParam = params.get('university');
-    const langParam = params.get('lang');
+    // Try hash fragment first (more reliable with Telegram)
+    const hashStr = window.location.hash.replace('#', '');
+    const searchStr = window.location.search;
     
-    console.log('URL params:', { balanceParam, createdParam, fullNameParam, universityParam, langParam });
+    console.log('Hash:', hashStr);
+    console.log('Search:', searchStr);
+    
+    // Parse from both hash and search params
+    const hashParams = new URLSearchParams(hashStr);
+    const searchParams = new URLSearchParams(searchStr);
+    
+    // Helper: get from hash first, then search
+    const getParam = (key) => hashParams.get(key) ?? searchParams.get(key);
+    
+    const balanceParam = getParam('balance');
+    const createdParam = getParam('created');
+    const fullNameParam = getParam('full_name');
+    const universityParam = getParam('university');
+    const langParam = getParam('lang');
+    
+    console.log('Parsed params:', { balanceParam, createdParam, fullNameParam, universityParam, langParam });
     
     const u = tg?.initDataUnsafe?.user;
-    
-    // Check if we have EITHER Telegram user OR URL params (bot data)
-    const hasBotData = balanceParam !== null || createdParam !== null || langParam !== null;
+    const hasBotData = balanceParam !== null;
     const hasTgUser = !!u;
     
     console.log('hasTgUser:', hasTgUser, '| hasBotData:', hasBotData);
     
-    if(hasTgUser || hasBotData){
-        // Use Telegram user info if available
-        if(hasTgUser){
-            user.id = u.id;
-            user.name = u.first_name + (u.last_name ? ' ' + u.last_name : '');
-            console.log('Got Telegram user:', user.id, user.name);
-        } else {
-            // Fallback: try to get basic info from tg object
-            user.id = tg?.initDataUnsafe?.user?.id || 'N/A';
-            user.name = fullNameParam ? decodeURIComponent(fullNameParam) : 'User';
-            console.log('No Telegram user, using fallback. tg.initData:', tg?.initData);
-        }
-        
-        // URL params from bot take priority over Telegram defaults
-        user.lang = langParam || (u?.language_code === 'ru' ? 'ru' : u?.language_code === 'en' ? 'en' : 'uz');
-        user.balance = balanceParam !== null ? parseInt(balanceParam) : 0;
-        user.created = createdParam !== null ? parseInt(createdParam) : 0;
-        user.full_name = fullNameParam ? decodeURIComponent(fullNameParam) : (user.name || '');
+    if(hasBotData){
+        console.log('=== Using BOT URL params ===');
+        user.id = u?.id || 'N/A';
+        user.name = fullNameParam ? decodeURIComponent(fullNameParam) : (u?.first_name || 'User');
+        user.lang = langParam || 'uz';
+        user.balance = parseInt(balanceParam) || 0;
+        user.created = parseInt(createdParam) || 0;
+        user.full_name = fullNameParam ? decodeURIComponent(fullNameParam) : user.name;
         user.university = universityParam ? decodeURIComponent(universityParam) : '';
-        
-        console.log('=== Final user data ===', JSON.stringify(user));
+        console.log('=== Final user (from bot params):', JSON.stringify(user));
+    } else if(hasTgUser){
+        console.log('=== Using Telegram initDataUnsafe ===');
+        user.id = u.id;
+        user.name = u.first_name + (u.last_name ? ' ' + u.last_name : '');
+        user.lang = u.language_code === 'ru' ? 'ru' : u.language_code === 'en' ? 'en' : 'uz';
+        user.balance = 0;
+        user.created = 0;
+        user.full_name = user.name;
+        user.university = '';
+        console.log('=== Final user (from Telegram):', JSON.stringify(user));
     } else {
         console.warn('=== FALLING INTO TEST MODE ===');
-        console.warn('Reason: No tg user AND no URL params from bot');
-        console.warn('tg.initData:', tg?.initData);
-        console.warn('tg.initDataUnsafe:', JSON.stringify(tg?.initDataUnsafe));
-        
         user.name = 'Test User';
         user.id = '123456789';
         user.balance = 15000;
