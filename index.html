@@ -56,20 +56,38 @@ const RSTYLES=[{id:'classic',name:'Classic'},{id:'modern',name:'Modern'},{id:'te
 const STYLE_IMG_1='https://enygxibkgjoqjmqsiwdi.supabase.co/storage/v1/object/sign/pptbackground/back_images/1st_overall.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xMDBjOGJkMC02NTRhLTQxNTMtYWQ5Zi1kNmNlMzU3YjMzZGYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcHRiYWNrZ3JvdW5kL2JhY2tfaW1hZ2VzLzFzdF9vdmVyYWxsLnBuZyIsImlhdCI6MTc2NTUzNzYwMSwiZXhwIjoxNzk3MDczNjAxfQ.U-VQdYLilFdLUJmV76V3ZYCNhobA1AVcdLRLa7LRUT4';
 const STYLE_IMG_2='https://enygxibkgjoqjmqsiwdi.supabase.co/storage/v1/object/sign/pptbackground/back_images/2nd_overall_back_images.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV8xMDBjOGJkMC02NTRhLTQxNTMtYWQ5Zi1kNmNlMzU3YjMzZGYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJwcHRiYWNrZ3JvdW5kL2JhY2tfaW1hZ2VzLzJuZF9vdmVyYWxsX2JhY2tfaW1hZ2VzLnBuZyIsImlhdCI6MTc2MzYzNzIyMSwiZXhwIjoxNzk1MTczMjIxfQ.wYx3Q7_ZYXh00ut-otgqRN4Ksdzu_rECMpmaiOy1ggg';
 
-function getData(){
-    const u=tg?.initDataUnsafe?.user;
+async function getData(){
+    const u = tg?.initDataUnsafe?.user;
+    
+    // Parse URL params sent by bot
+    const params = new URLSearchParams(window.location.search);
+    const balanceParam = params.get('balance');
+    const createdParam = params.get('created');
+    const fullNameParam = params.get('full_name');
+    const universityParam = params.get('university');
+    const langParam = params.get('lang');
+    
     if(u){
-        user.balance=15000;
-        user.created=24;
-        user.lang=u.language_code==='ru'?'ru':u.language_code==='en'?'en':'uz';
-        user.name=u.first_name+(u.last_name?' '+u.last_name:'');
-        user.id=u.id;
-        console.log('User data loaded:', user);
-    }else{
-        user.name='Test User';
-        user.id='123456789';
-        user.balance=15000;
-        user.created=24;
+        user.id = u.id;
+        user.name = u.first_name + (u.last_name ? ' ' + u.last_name : '');
+        // Use lang from bot (more reliable) or fall back to Telegram's
+        user.lang = langParam || (u.language_code === 'ru' ? 'ru' : u.language_code === 'en' ? 'en' : 'uz');
+        
+        // Use real data from URL params if available, otherwise fallback
+        user.balance = balanceParam !== null ? parseInt(balanceParam) : 0;
+        user.created = createdParam !== null ? parseInt(createdParam) : 0;
+        user.full_name = fullNameParam ? decodeURIComponent(fullNameParam) : user.name;
+        user.university = universityParam ? decodeURIComponent(universityParam) : '';
+        
+        console.log('User data loaded from bot params:', user);
+    } else {
+        // Test mode
+        user.name = 'Test User';
+        user.id = '123456789';
+        user.balance = 15000;
+        user.created = 24;
+        user.full_name = 'Test User';
+        user.university = 'Test University';
         console.log('Test mode - no Telegram data');
     }
 }
@@ -85,6 +103,7 @@ function render(){
     if(step==='home')renderHome(a,th);
     else if(step==='create')renderForm(a,th);
     else if(step==='sending')renderSend(a,th);
+    else if(step==='loading')renderLoading(a,th);
 }
 
 function renderHome(a,th){
@@ -144,8 +163,11 @@ function startCreate(type){
     form.content='';
     form.style=dt.isPres?'formal':dt.isRes?'classic':'';
     form.language='auto';
-    form.author='';
-    form.university='';
+    
+    // NEW: Auto-fill author and university from user data
+    form.author=user.full_name||user.name||'';
+    form.university=user.university||'';
+    
     stylePage=1;
     isSending=false;
     step='create';
